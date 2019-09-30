@@ -21,6 +21,7 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     private JTextField txtMsg;
 
     private JButton btnSend;
+    private JButton btnDirectSend;
     private JButton btnSair;
     private JButton btnAtualizarContatos;
 
@@ -58,12 +59,17 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
         lblHistorico = new JLabel("Histórico");
         lblMsg = new JLabel("Mensagem");
         btnSend = new JButton("Enviar");
+        btnDirectSend = new JButton("Direct Msg");
+
         btnSend.setToolTipText("Enviar Mensagem");
         btnSair = new JButton("Sair");
         btnAtualizarContatos = new JButton("Atualizar");
         btnSair.setToolTipText("Sair do Chat");
+
         btnSend.addActionListener(this);
         btnSair.addActionListener(this);
+        btnDirectSend.addActionListener(this);
+
         btnAtualizarContatos.addActionListener(this);
         btnSend.addKeyListener(this);
         txtMsg.addKeyListener(this);
@@ -85,10 +91,13 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
         pnlContent.add(txtMsg);
         pnlContent.add(btnSair);
         pnlContent.add(btnSend);
+        pnlContent.add(btnAtualizarContatos);
+        pnlContent.add(contactList);
+        pnlContent.add(btnDirectSend);
 
         pnlContent.setBackground(Color.LIGHT_GRAY);
-        texto.setBorder(BorderFactory.createEtchedBorder(Color.BLUE, Color.BLUE));
-        txtMsg.setBorder(BorderFactory.createEtchedBorder(Color.BLUE, Color.BLUE));
+        texto.setBorder(BorderFactory.createEtchedBorder(Color.LIGHT_GRAY, Color.LIGHT_GRAY));
+        txtMsg.setBorder(BorderFactory.createEtchedBorder(Color.LIGHT_GRAY, Color.LIGHT_GRAY));
         setTitle(txtNome.getText());
         setContentPane(pnlContent);
         setLocationRelativeTo(null);
@@ -99,7 +108,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     }
 
     public void conectar() throws IOException {
-
         socket = new Socket(txtIP.getText(), Integer.parseInt(txtPorta.getText()));
         ou = socket.getOutputStream();
         ouw = new OutputStreamWriter(ou);
@@ -111,13 +119,25 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     public void enviarMensagem(String msg) throws IOException {
         String payload = "type:msg;from:"+txtNome.getText()+";to:all;body:"+msg+"\r\n";
 
-        if (msg.equals("Sair")) {
-            bfw.write("Desconectado \r\n");
-            texto.append("Desconectado \r\n");
-        } else {
-            bfw.write(payload);
-            texto.append(txtNome.getText() + " diz -> " + txtMsg.getText() + "\r\n");
-        }
+        bfw.write(payload);
+        texto.append(txtNome.getText() + " diz -> " + txtMsg.getText() + "\r\n");
+
+        bfw.flush();
+        txtMsg.setText("");
+    }
+
+    public void enviarMensagemDireta(String from, String to, String msg) throws IOException {
+        String payload = "type:msg;from:"+from+";to:"+to+";body:"+msg+"\r\n";
+        bfw.write(payload);
+        texto.append(from + " to "+to+" diz -> " + msg + "\r\n");
+        bfw.flush();
+        txtMsg.setText("");
+    }
+
+    public void enviarSair() throws IOException {
+        String payload = "type:exit;from:"+txtNome.getText()+";to:all;body: \r\n";
+        bfw.write(payload);
+        texto.append("Desconectado \r\n");
         bfw.flush();
         txtMsg.setText("");
     }
@@ -162,15 +182,17 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
                     contactList.setModel(contatos);
 
                 } else if(type.equalsIgnoreCase("msg")){
-                    texto.append(from + " diz -> "+body+"\r\n");
+                    if(to.equalsIgnoreCase("all"))
+                        texto.append(from + " diz -> "+body+"\r\n");
+                    else
+                        texto.append(from + " to "+to+" diz -> " + body + "\r\n");
                 }
             }
         }
     }
 
     public void sair() throws IOException{
-
-        enviarMensagem("Sair");
+        enviarSair();
         bfw.close();
         ouw.close();
         ou.close();
@@ -179,7 +201,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
         try {
             if(e.getActionCommand().equals(btnSend.getActionCommand()))
                 enviarMensagem(txtMsg.getText());
@@ -187,6 +208,10 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
                 sair();
             else if(e.getActionCommand().equals(btnAtualizarContatos.getActionCommand()))
                 buscarContatos();
+            else if(e.getActionCommand().equals(btnDirectSend.getActionCommand())) {
+                System.out.println((String) contactList.getSelectedValue());
+                enviarMensagemDireta(txtNome.getText(), (String) contactList.getSelectedValue(), txtMsg.getText());
+            }
         } catch (IOException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
@@ -195,7 +220,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
-
         if(e.getKeyCode() == KeyEvent.VK_ENTER){
             try {
                 enviarMensagem(txtMsg.getText());
@@ -216,7 +240,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
         // TODO Auto-generated method stub
     }
     public static void main(String []args) throws IOException{
-
         Cliente app = new Cliente();
         app.conectar();
         app.escutar();

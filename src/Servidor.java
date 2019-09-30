@@ -13,14 +13,10 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javafx.util.Pair;
-import java.io.BufferedWriter;
-import java.net.ServerSocket;
-import java.util.ArrayList;
 
 public class Servidor extends Thread {
 
     private static ArrayList<Pair<String, BufferedWriter>> clientes;
-    //private static ArrayList<String> nomesClientes;
     private static ServerSocket server;
     private String nome;
     private Socket con;
@@ -44,30 +40,34 @@ public class Servidor extends Thread {
 
         try{
             String msg;
+            String[] msgArray;
+            String type = "";
+            String from = "";
+            String to = "";
+            String body = "";
+
             OutputStream ou =  this.con.getOutputStream();
             Writer ouw = new OutputStreamWriter(ou);
             BufferedWriter bfw = new BufferedWriter(ouw);
             nome = msg = bfr.readLine();
 
             clientes.add(new Pair <String, BufferedWriter> (nome, bfw));
-            //clientes.add(bfw);
-            //nomesClientes.add(nome);
 
             //Servidor escutando mensagens dos clientes:
-            while(!"Sair".equalsIgnoreCase(msg)){
+            while(!"exit".equalsIgnoreCase(type)){
 
                 msg = bfr.readLine();
-                System.out.println(msg);
 
                 if (msg == null){
                     continue;
                 } else {
-                    //type:contacts;from:Cliente;to:all;body:
-                    String[] msgArray = msg.split(";");
-                    String type = msgArray[0].split(":")[1];
-                    String from = msgArray[1].split(":")[1];
-                    String to = msgArray[2].split(":")[1];
-                    String body = msgArray[3].split(":")[1];
+                    System.out.println(msg);
+
+                    msgArray = msg.split(";");
+                    type = msgArray[0].split(":")[1];
+                    from = msgArray[1].split(":")[1];
+                    to = msgArray[2].split(":")[1];
+                    body = msgArray[3].split(":")[1];
 
                     if (type.equalsIgnoreCase("contacts")){
                         // Isso vai enviar os contatos pra todos os clientes,
@@ -81,7 +81,11 @@ public class Servidor extends Thread {
                         sendContatos(from, contatos);
 
                     } else if(type.equalsIgnoreCase("msg")){
-                        sendToAll(bfw, body);
+                        if(to.equalsIgnoreCase("all"))
+                            sendToAll(bfw, body);
+                        else
+                            sendDirect(to, body);
+
                     }
                 }
 
@@ -102,6 +106,19 @@ public class Servidor extends Thread {
         for(Pair <String, BufferedWriter> cliente : clientes){
             bwS = (BufferedWriter)cliente.getValue();
             if(!(bwSaida == bwS)){ // if usado para nao mandar para ele mesmo
+                cliente.getValue().write(payload);
+                cliente.getValue().flush();
+            }
+        }
+    }
+
+    public void sendDirect(String to, String msg) throws  IOException
+    {
+        String payload = "type:msg;from:"+nome+";to:"+to+";body:"+msg+"\r\n";
+        //String[] toArray = to.split();
+
+        for(Pair <String, BufferedWriter> cliente : clientes){
+            if(cliente.getKey().equalsIgnoreCase(to)) {
                 cliente.getValue().write(payload);
                 cliente.getValue().flush();
             }
@@ -132,7 +149,6 @@ public class Servidor extends Thread {
             JOptionPane.showMessageDialog(null, texts);
             server = new ServerSocket(Integer.parseInt(txtPorta.getText()));
             clientes = new ArrayList<Pair<String, BufferedWriter>>();
-            //nomesClientes = new ArrayList<String>();
             JOptionPane.showMessageDialog(null,"Servidor ativo na porta: "+
                     txtPorta.getText());
 
