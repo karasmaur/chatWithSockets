@@ -53,7 +53,7 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
 
         texto = new JTextArea(10, 20);
         texto.setEditable(false);
-        texto.setBackground(new Color(240, 240, 240));
+        texto.setBackground(new Color(252, 243, 249, 135));
         txtMsg = new JTextField(20);
         lblHistorico = new JLabel("Histórico");
         lblMsg = new JLabel("Mensagem");
@@ -109,12 +109,13 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     }
 
     public void enviarMensagem(String msg) throws IOException {
+        String payload = "type:msg;from:"+txtNome.getText()+";to:all;body:"+msg+"\r\n";
 
         if (msg.equals("Sair")) {
             bfw.write("Desconectado \r\n");
             texto.append("Desconectado \r\n");
         } else {
-            bfw.write(msg + "\r\n");
+            bfw.write(payload);
             texto.append(txtNome.getText() + " diz -> " + txtMsg.getText() + "\r\n");
         }
         bfw.flush();
@@ -122,7 +123,8 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     }
 
     public void buscarContatos() throws IOException {
-        bfw.write("getcontato\r\n");
+        String payload = "type:contacts;from:"+txtNome.getText()+";to:all;body: \r\n";
+        bfw.write(payload);
         System.out.println("Buscando contatos!");
         bfw.flush();
     }
@@ -135,28 +137,35 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
         String msg = "";
         System.out.println(msg);
 
-        while (!"Sair".equalsIgnoreCase(msg))
-
+        while (!"Sair".equalsIgnoreCase(msg)) {
             if (bfr.ready()) {
                 msg = bfr.readLine();
-                if (msg.equals("Sair")){
+                System.out.println(msg);
+
+                String[] msgArray = msg.split(";");
+                String type = msgArray[0].split(":")[1];
+                String from = msgArray[1].split(":")[1];
+                String to = msgArray[2].split(":")[1];
+                String body = msgArray[3].split(":")[1];
+
+                if (msg.equals("Sair")) {
                     texto.append("Servidor caiu! \r\n");
-                }
-                else if (msg.startsWith("!contatos")){
-                    System.out.println("Contatos buscados: " + msg);
+                } else if (type.equalsIgnoreCase("contacts")) {
+
+                    System.out.println("Contatos buscados: " + body);
                     contatos = new DefaultListModel();
-                    String[] contatosArray = msg.split(";");
+                    String[] contatosArray = body.split(",");
 
-                    for (int i = 1; i < contatosArray.length; i++) {
-                        contatos.addElement(contatosArray[i]);
+                    for (String contato :contatosArray) {
+                        contatos.addElement(contato);
                     }
-
                     contactList.setModel(contatos);
-                }
-                else{
-                    texto.append(msg + "\r\n");
+
+                } else if(type.equalsIgnoreCase("msg")){
+                    texto.append(from + " diz -> "+body+"\r\n");
                 }
             }
+        }
     }
 
     public void sair() throws IOException{
