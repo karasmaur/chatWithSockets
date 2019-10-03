@@ -37,7 +37,6 @@ public class Servidor extends Thread {
     }
 
     public void run(){
-
         try{
             String msg;
             String[] msgArray;
@@ -159,7 +158,6 @@ public class Servidor extends Thread {
                 Thread t = new Servidor(con);
                 t.start();
             }
-
         }catch (Exception e) {
 
             e.printStackTrace();

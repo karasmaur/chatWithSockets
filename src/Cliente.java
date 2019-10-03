@@ -40,8 +40,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
     private Writer ouw;
     private BufferedWriter bfw;
 
-
-
     public Cliente() throws IOException {
         JLabel lblMessage = new JLabel("Verificar!");
         txtIP = new JTextField("127.0.0.1");
@@ -75,7 +73,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
         txtMsg.addKeyListener(this);
         JScrollPane scroll = new JScrollPane(texto);
         texto.setLineWrap(true);
-
 
         //test Jlist
 
